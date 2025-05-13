@@ -4,92 +4,185 @@ import java.awt.event.*;
 import java.util.HashMap;
 
 public class MapPage extends JPanel {
+    private AppFrame parent;
     private JLabel mapLabel;
-    private JComboBox<String> filterComboBox;
-    private JPanel infoPanel;
+    private JPanel rightPanel;
+    private JTextField searchField;
     private JLabel buildingImageLabel;
-    private JTextArea buildingInfoTextArea;
-
+    private JTextArea buildingDetailsText;
+    private JPanel categoryMenu;
     private HashMap<String, Building> buildingMap;
 
-    public MapPage() {
+    public MapPage(AppFrame parent) {
+        this.parent = parent;
         setLayout(new BorderLayout());
+        setBackground(Color.BLACK);
 
-        // Top Panel with filter and navigation
-        JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        filterComboBox = new JComboBox<>(new String[]{
-                "All", "Buildings", "Academic", "Administration", "Auditoriums"
-        });
-        topPanel.add(new JLabel("Filter:"));
-        topPanel.add(filterComboBox);
+        // === LEFT MENU PANEL ===
+        categoryMenu = new JPanel();
+        categoryMenu.setLayout(new BoxLayout(categoryMenu, BoxLayout.Y_AXIS));
+        categoryMenu.setBackground(Color.BLACK);
+        categoryMenu.setPreferredSize(new Dimension(80, 0));
 
-        JButton goBackButton = new JButton(new ImageIcon("logos/go-back-logo.png"));
-        topPanel.add(goBackButton);
+        // Add menu buttons (icons only)
+        String[] categories = {"Buildings", "Cafes", "Restaurants", "Parking_Lots", "Stores",
+                "Dormitories", "Administrations", "Sports_Areas", "Auditoriums"};
+        for (String cat : categories) {
+            JButton btn = new JButton(new ImageIcon("logos/" + cat.toLowerCase() + ".png"));
+            btn.setAlignmentX(Component.CENTER_ALIGNMENT);
+            btn.setBackground(Color.BLACK);
+            btn.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
+            btn.setFocusable(false);
+            btn.setPreferredSize(new Dimension(70, 70));
+            categoryMenu.add(btn);
+            categoryMenu.add(Box.createVerticalStrut(5));
+        }
+        add(categoryMenu, BorderLayout.WEST);
 
-        add(topPanel, BorderLayout.NORTH);
+        // === MAIN CONTENT PANEL ===
+        JPanel contentPanel = new JPanel(new BorderLayout());
+        contentPanel.setBackground(Color.BLACK);
 
-        // Map display (center)
-        mapLabel = new JLabel(new ImageIcon("logos/map-icon.png"));
+        // === MAP PANEL ===
+        mapLabel = new JLabel();
         mapLabel.setLayout(null);
-        JScrollPane mapScrollPane = new JScrollPane(mapLabel);
-        add(mapScrollPane, BorderLayout.CENTER);
+        mapLabel.setBackground(Color.BLACK);
 
-        // Info panel (right)
-        infoPanel = new JPanel();
-        infoPanel.setLayout(new BoxLayout(infoPanel, BoxLayout.Y_AXIS));
-        infoPanel.setPreferredSize(new Dimension(250, 0));
+        // Load and scale the map image
+        try {
+            ImageIcon originalMapIcon = new ImageIcon("background/map.png");
+            Image scaledMap = originalMapIcon.getImage().getScaledInstance(800, 600, Image.SCALE_SMOOTH);
+            mapLabel.setIcon(new ImageIcon(scaledMap));
+        } catch (Exception e) {
+            mapLabel.setText("Map image not found");
+            mapLabel.setForeground(Color.WHITE);
+        }
+
+        JScrollPane mapScroll = new JScrollPane(mapLabel);
+        mapScroll.setBorder(null);
+        mapScroll.getViewport().setBackground(Color.BLACK);
+        contentPanel.add(mapScroll, BorderLayout.CENTER);
+
+        // === RIGHT PANEL (Search and Info) ===
+        rightPanel = new JPanel();
+        rightPanel.setPreferredSize(new Dimension(300, 0));
+        rightPanel.setBackground(Color.BLACK);
+        rightPanel.setLayout(new BoxLayout(rightPanel, BoxLayout.Y_AXIS));
+
+        // Exit button
+        JPanel exitPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        exitPanel.setBackground(Color.BLACK);
+        JButton exitBtn = new JButton("< EXIT | MAP");
+        exitBtn.setForeground(Color.WHITE);
+        exitBtn.setBackground(Color.BLACK);
+        exitBtn.setBorder(null);
+        exitBtn.setFocusable(false);
+        exitBtn.addActionListener(e -> parent.showPage("main"));
+        exitPanel.add(exitBtn);
+        rightPanel.add(exitPanel);
+
+        rightPanel.add(Box.createVerticalStrut(20));
+
+        // Search section
+        JLabel searchLabel = new JLabel("Search anywhere:");
+        searchLabel.setForeground(Color.WHITE);
+        searchLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        rightPanel.add(searchLabel);
+
+        JPanel searchPanel = new JPanel();
+        searchPanel.setBackground(Color.BLACK);
+        searchPanel.setLayout(new BoxLayout(searchPanel, BoxLayout.X_AXIS));
+        searchField = new JTextField();
+        searchField.setMaximumSize(new Dimension(200, 30));
+        searchField.setPreferredSize(new Dimension(200, 30));
+
+        JButton searchBtn = new JButton(new ImageIcon("logos/enter-icon.png"));
+        searchBtn.setBackground(Color.BLACK);
+        searchBtn.setBorder(null);
+        searchBtn.addActionListener(e -> performSearch());
+
+        // Add enter key listener to search field
+        searchField.addActionListener(e -> performSearch());
+
+        searchPanel.add(searchField);
+        searchPanel.add(Box.createHorizontalStrut(5));
+        searchPanel.add(searchBtn);
+        rightPanel.add(searchPanel);
+
+        rightPanel.add(Box.createVerticalStrut(20));
+
+        // Building info section
         buildingImageLabel = new JLabel();
-        buildingInfoTextArea = new JTextArea();
-        buildingInfoTextArea.setEditable(false);
-        buildingInfoTextArea.setLineWrap(true);
-        buildingInfoTextArea.setWrapStyleWord(true);
+        buildingImageLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        rightPanel.add(buildingImageLabel);
 
-        infoPanel.add(buildingImageLabel);
-        infoPanel.add(new JScrollPane(buildingInfoTextArea));
-        add(infoPanel, BorderLayout.EAST);
+        buildingDetailsText = new JTextArea();
+        buildingDetailsText.setForeground(Color.WHITE);
+        buildingDetailsText.setBackground(Color.BLACK);
+        buildingDetailsText.setEditable(false);
+        buildingDetailsText.setLineWrap(true);
+        buildingDetailsText.setWrapStyleWord(true);
+        buildingDetailsText.setMaximumSize(new Dimension(280, 150));
+        rightPanel.add(buildingDetailsText);
 
-        // Load buildings
+        contentPanel.add(rightPanel, BorderLayout.EAST);
+        add(contentPanel, BorderLayout.CENTER);
+
+        // === BUILDINGS ===
         buildingMap = new HashMap<>();
-        addBuilding("B", "Faculty of Law", "Buildings", new Point(100, 200),
-                "Services: ...");
-        addBuilding("EE", "Electrical- Electronics Engineering", "Buildings", new Point(150, 200),
-                "Departments: Electrical-Electronics Engineering\nContacts: ee@bilkent.edu.tr");
-        addBuilding("EA", "Faculty of Engineering", "Academic", new Point(250, 180),
-                "Departments: Computer Science\nContacts: cs@bilkent.edu.tr");
+        addBuilding("B", "Law Faculty & Computer Center", new Point(300, 400),
+                "- Classes\n- Law Department\n- Cafe\n- 7/24 Computer Labs");
+        // Add other buildings here...
 
-        // Load markers
         for (String key : buildingMap.keySet()) {
             Building b = buildingMap.get(key);
             JButton marker = new JButton();
-            marker.setBounds(b.location.x, b.location.y, 20, 20);
-            marker.setBackground(Color.RED);
+            marker.setBounds(b.location.x, b.location.y, 24, 24);
+            marker.setOpaque(false);
+            marker.setContentAreaFilled(false);
+            marker.setBorderPainted(false);
             marker.setToolTipText(b.name);
             marker.addActionListener(e -> showBuildingInfo(b));
             mapLabel.add(marker);
         }
     }
 
-    private void addBuilding(String id, String name, String category, Point location, String info) {
-        buildingMap.put(id, new Building(id, name, category, location, info));
+    private void performSearch() {
+        String searchText = searchField.getText().trim();
+        if (!searchText.isEmpty()) {
+            // Implement your search logic here
+            // For example:
+            for (Building b : buildingMap.values()) {
+                if (b.name.toLowerCase().contains(searchText.toLowerCase())) {
+                    showBuildingInfo(b);
+                    break;
+                }
+            }
+        }
+    }
+
+    private void addBuilding(String id, String name, Point location, String info) {
+        buildingMap.put(id, new Building(id, name, location, info));
     }
 
     private void showBuildingInfo(Building b) {
-        ImageIcon icon = new ImageIcon("building_images/" + b.id + ".jpeg");
-        buildingImageLabel.setIcon(icon);
-        buildingInfoTextArea.setText(b.name + "\n\n" + b.info);
+        try {
+            ImageIcon originalIcon = new ImageIcon("building_images/" + b.id + ".jpeg");
+            Image scaledImage = originalIcon.getImage().getScaledInstance(280, 150, Image.SCALE_SMOOTH);
+            buildingImageLabel.setIcon(new ImageIcon(scaledImage));
+        } catch (Exception e) {
+            buildingImageLabel.setText("Image not found");
+            buildingImageLabel.setForeground(Color.WHITE);
+        }
+        buildingDetailsText.setText(b.name + "\n\nWhat's in it?\n" + b.info);
     }
 
     static class Building {
-        String id;
-        String name;
-        String category;
+        String id, name, info;
         Point location;
-        String info;
-
-        Building(String id, String name, String category, Point location, String info) {
+        Building(String id, String name, Point location, String info) {
             this.id = id;
             this.name = name;
-            this.category = category;
             this.location = location;
             this.info = info;
         }
