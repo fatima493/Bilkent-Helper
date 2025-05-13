@@ -2,8 +2,10 @@ public class CurrentUser {
     private static CurrentUser instance;
     private User user;
 
+    // Private constructor: dışarıdan nesne oluşturulmasın
     private CurrentUser() {}
 
+    // Singleton erişim metodu
     public static CurrentUser getInstance() {
         if (instance == null) {
             instance = new CurrentUser();
@@ -11,15 +13,18 @@ public class CurrentUser {
         return instance;
     }
 
-    public User getUser() {
-        return user;
-    }
-
+    // Kullanıcıyı set et
     public void setUser(User user) {
         this.user = user;
     }
 
-    public void clear() {
+    // Kullanıcıyı al
+    public User getUser() {
+        return user;
+    }
+
+    // Kullanıcıyı sıfırla (çıkış yapıldığında kullanılabilir)
+    public void clearUser() {
         this.user = null;
     }
 }
