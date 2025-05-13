@@ -3,13 +3,25 @@ import javax.swing.border.EmptyBorder;
 import java.awt.*;
 
 public class MainPage extends BackgroundPanel {
+    private AppFrame frame;
+    private JPanel mainContent;
+
     public MainPage(AppFrame frame) {
+        this.frame = frame;
         setLayout(new BorderLayout());
 
         // margins
         int mx = (int)(Toolkit.getDefaultToolkit().getScreenSize().width * 0.04);
         int my = (int)(Toolkit.getDefaultToolkit().getScreenSize().height * 0.05);
         setBorder(new EmptyBorder(my, mx, my, mx));
+
+        createMainContent();
+        add(mainContent, BorderLayout.CENTER);
+    }
+
+    private void createMainContent() {
+        mainContent = new JPanel(new BorderLayout());
+        mainContent.setOpaque(false);
 
         // --- TOP BAR ---
         JPanel topBar = new JPanel(new BorderLayout());
@@ -31,7 +43,7 @@ public class MainPage extends BackgroundPanel {
         tr.add(iconButton("logos/profile-icon.png", () -> frame.showPage("profile")));
         topBar.add(tr, BorderLayout.EAST);
 
-        add(topBar, BorderLayout.NORTH);
+        mainContent.add(topBar, BorderLayout.NORTH);
 
         // --- BOTTOM BAR ---
         JPanel bottomBar = new JPanel(new BorderLayout());
@@ -71,13 +83,7 @@ public class MainPage extends BackgroundPanel {
         survey.setFocusPainted(false);
         survey.setBorderPainted(false);
         survey.setOpaque(false);
-        survey.addActionListener(e -> {
-            // Create and show the SliderFrame when survey button is clicked
-            SwingUtilities.invokeLater(() -> {
-                SliderFrame sliderFrame = new SliderFrame();
-                sliderFrame.setVisible(true);
-            });
-        });
+        survey.addActionListener(e -> showSurvey());
 
         JPanel bottomRightPanel = new JPanel(new GridBagLayout());
         bottomRightPanel.setOpaque(false);
@@ -90,7 +96,7 @@ public class MainPage extends BackgroundPanel {
         bottomRightPanel.add(survey, gbc);
 
         bottomBar.add(bottomRightPanel, BorderLayout.CENTER);
-        add(bottomBar, BorderLayout.SOUTH);
+        mainContent.add(bottomBar, BorderLayout.SOUTH);
 
         // --- Welcome Text ---
         String userName = CurrentUser.getInstance().getUser() != null
@@ -101,18 +107,41 @@ public class MainPage extends BackgroundPanel {
         welcomeText.setForeground(Color.WHITE);
         welcomeText.setOpaque(false);
 
-        // Welcome panel – sola hizalanmış
+        // Welcome panel – left aligned
         JPanel welcomePanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         welcomePanel.setOpaque(false);
         welcomePanel.add(welcomeText);
 
-        // Merkez panelin alt kısmında, sola hizalanmış
+        // Center panel with welcome text
         JPanel centerPanel = new JPanel(new BorderLayout());
         centerPanel.setOpaque(false);
-        centerPanel.setBorder(new EmptyBorder(0, 0, 130, 0)); // Alt butonlarla çakışmasın
-
+        centerPanel.setBorder(new EmptyBorder(0, 0, 130, 0));
         centerPanel.add(welcomePanel, BorderLayout.SOUTH);
-        add(centerPanel, BorderLayout.CENTER);
+        mainContent.add(centerPanel, BorderLayout.CENTER);
+    }
+
+    private void showSurvey() {
+        removeAll();
+        
+        // Create back button panel
+        JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        topPanel.setOpaque(false);
+        topPanel.add(iconButton("logos/go-back-logo.png", () -> {
+            removeAll();
+            add(mainContent, BorderLayout.CENTER);
+            revalidate();
+            repaint();
+        }));
+        
+        // Create container for survey content
+        JPanel surveyContainer = new JPanel(new BorderLayout());
+        surveyContainer.setOpaque(false);
+        surveyContainer.add(topPanel, BorderLayout.NORTH);
+        surveyContainer.add(new SliderPanel(), BorderLayout.CENTER);
+        
+        add(surveyContainer, BorderLayout.CENTER);
+        revalidate();
+        repaint();
     }
 
     // creates a 40×40 icon button
