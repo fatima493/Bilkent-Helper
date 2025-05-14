@@ -37,8 +37,23 @@ public class TutoringPage extends BackgroundPanel {
         searchField = new JTextField(20);
         searchField.setText("Search by name");
         searchField.setFont(new Font("Avenir Next", Font.PLAIN, 14));
-        searchField.setForeground(Color.WHITE);
-        searchField.setOpaque(false);
+        searchField.setForeground(Color.BLACK); // Changed to black for visibility
+        searchField.setBackground(new Color(255, 255, 255, 200)); // Semi-transparent white background
+        searchField.addFocusListener(new FocusAdapter() {
+            @Override
+            public void focusGained(FocusEvent e) {
+                if (searchField.getText().equals("Search by name")) {
+                    searchField.setText("");
+                }
+            }
+            
+            @Override
+            public void focusLost(FocusEvent e) {
+                if (searchField.getText().isEmpty()) {
+                    searchField.setText("Search by name");
+                }
+            }
+        });
 
         ImageIcon searchIcon = new ImageIcon("logos/search-icon.png");
         Image scaledImage = searchIcon.getImage().getScaledInstance(40, 40, Image.SCALE_SMOOTH);
@@ -51,6 +66,7 @@ public class TutoringPage extends BackgroundPanel {
         searchButton.setOpaque(false);
 
         searchButton.addActionListener(e -> performSearch());
+        searchField.addActionListener(e -> performSearch());
 
         searchPanel.add(searchField);
         searchPanel.add(searchButton);
@@ -114,10 +130,44 @@ public class TutoringPage extends BackgroundPanel {
         subTitle.setFont(new Font("Avenir Next", Font.PLAIN, 14));
         subTitle.setText("By Lecture or Code");
 
-        JMenu lecturesMenu = new JMenu("Lectures");
-        lecturesMenu.setForeground(Color.WHITE);
-        JMenu codeMenu = new JMenu("Code");
-        codeMenu.setForeground(Color.WHITE);
+        JComboBox<String> lecturesMenu = new JComboBox<>(new String[]{"MATH101", "CS102", "PHYS101", "CS201", "CS202", "CHEM101", "MATH102"});
+        lecturesMenu.setForeground(Color.BLACK);
+        lecturesMenu.setBackground(Color.WHITE);
+        lecturesMenu.addActionListener(e -> {
+            String selectedCourse = (String) lecturesMenu.getSelectedItem();
+            if (selectedCourse != null && !selectedCourse.isEmpty()) {
+                tutorsPanel.removeAll();
+                for (Tutor tutor : tutors) {
+                    if (tutor.getCoursesGiven().contains(selectedCourse)) {
+                        tutorsPanel.add(tutor);
+                        tutorsPanel.add(Box.createRigidArea(new Dimension(0, 10)));
+                    }
+                }
+                tutorsPanel.revalidate();
+                tutorsPanel.repaint();
+            }
+        });
+
+        JComboBox<String> codeMenu = new JComboBox<>(new String[]{"101", "102", "201", "202"});
+        codeMenu.setForeground(Color.BLACK);
+        codeMenu.setBackground(Color.WHITE);
+        codeMenu.addActionListener(e -> {
+            String selectedCode = (String) codeMenu.getSelectedItem();
+            if (selectedCode != null && !selectedCode.isEmpty()) {
+                tutorsPanel.removeAll();
+                for (Tutor tutor : tutors) {
+                    for (String course : tutor.getCoursesGiven()) {
+                        if (course.contains(selectedCode)) {
+                            tutorsPanel.add(tutor);
+                            tutorsPanel.add(Box.createRigidArea(new Dimension(0, 10)));
+                            break;
+                        }
+                    }
+                }
+                tutorsPanel.revalidate();
+                tutorsPanel.repaint();
+            }
+        });
 
         byPanel.add(title);
         byPanel.add(empty1);
@@ -144,14 +194,10 @@ public class TutoringPage extends BackgroundPanel {
         subtitle3.setFont(new Font("Avenir Next", Font.PLAIN, 14));
         subtitle3.setText("Minimum GPA");
 
-        
-
-        JButton semesterButton = new JButton();
-
         JTextField gpaInputField = new JTextField();
         gpaInputField.setFont(new Font("Avenir Next", Font.PLAIN, 14));
-        gpaInputField.setForeground(Color.WHITE);
-        gpaInputField.setOpaque(false);
+        gpaInputField.setForeground(Color.BLACK);
+        gpaInputField.setBackground(Color.WHITE);
         gpaInputField.setPreferredSize(new Dimension(100, 25));
 
         gpaInputField.addActionListener(e -> {
@@ -183,8 +229,8 @@ public class TutoringPage extends BackgroundPanel {
 
         JTextField semesterInputField = new JTextField();
         semesterInputField.setFont(new Font("Avenir Next", Font.PLAIN, 14));
-        semesterInputField.setForeground(Color.WHITE);
-        semesterInputField.setOpaque(false);
+        semesterInputField.setForeground(Color.BLACK);
+        semesterInputField.setBackground(Color.WHITE);
         semesterInputField.setPreferredSize(new Dimension(100, 25));
 
         semesterInputField.addActionListener(e -> {
@@ -198,7 +244,7 @@ public class TutoringPage extends BackgroundPanel {
                 }
             } else {
                 try {
-                    double minSem = Double.parseDouble(inputText);
+                    int minSem = Integer.parseInt(inputText);
                     for (Tutor tutor : tutors) {
                         if (tutor.getSemester() >= minSem) {
                             tutorsPanel.add(tutor);
@@ -206,15 +252,13 @@ public class TutoringPage extends BackgroundPanel {
                         }
                     }
                 } catch (NumberFormatException ex) {
-                    JOptionPane.showMessageDialog(this, "Please enter a valid GPA (e.g., 2.5)", "Invalid Input", JOptionPane.ERROR_MESSAGE);
+                    JOptionPane.showMessageDialog(this, "Please enter a valid semester (e.g., 2)", "Invalid Input", JOptionPane.ERROR_MESSAGE);
                 }
             }
         
             tutorsPanel.revalidate();
             tutorsPanel.repaint();
         });
-
-        
 
         filterbyPanel.add(title2);
         filterbyPanel.add(empty3);
@@ -223,42 +267,71 @@ public class TutoringPage extends BackgroundPanel {
         filterbyPanel.add(subtitle3);
         filterbyPanel.add(gpaInputField);
 
-
-        JPanel arrangePanel = new JPanel(new GridLayout(1,3));
+        JPanel arrangePanel = new JPanel(new GridLayout(3, 3));
         arrangePanel.setOpaque(false);
 
-        JLabel sub3 = new JLabel();
-        sub3.setForeground(Color.WHITE);
-        sub3.setFont(new Font("Avenir Next", Font.PLAIN, 14));
-        sub3.setText("GPA");
+        JLabel sub1 = new JLabel("Price");
+        sub1.setForeground(Color.WHITE);
+        sub1.setFont(new Font("Avenir Next", Font.PLAIN, 14));
 
         JButton priceInc = new JButton("Increasing");
-        JButton priceDec = new JButton("Decreasing");
-        JButton starsInc = new JButton("Increasing");
-        JButton starsDec = new JButton("Decreasing");
-        JButton gpaInc = new JButton("Increasing");
-        gpaInc.addActionListener(e -> {
-            tutors.sort((t1, t2) -> Double.compare(t1.getGpa(), t2.getGpa()));
-            tutorsPanel.removeAll();
-            for (Tutor tutor : tutors) {
-                tutorsPanel.add(tutor);
-                tutorsPanel.add(Box.createRigidArea(new Dimension(0, 10)));
-            }
-            tutorsPanel.revalidate();
-            tutorsPanel.repaint();
-        });
-        JButton gpaDec = new JButton("Decreasing");
-        gpaDec.addActionListener(e -> {
-            tutors.sort((t1, t2) -> Double.compare(t2.getGpa(), t1.getGpa()));
-            tutorsPanel.removeAll();
-            for (Tutor tutor : tutors) {
-                tutorsPanel.add(tutor);
-                tutorsPanel.add(Box.createRigidArea(new Dimension(0, 10)));
-            }
-            tutorsPanel.revalidate();
-            tutorsPanel.repaint();
+        styleButton(priceInc);
+        priceInc.addActionListener(e -> {
+            tutors.sort((t1, t2) -> Integer.compare(t1.getTutoringHours(), t2.getTutoringHours()));
+            updateTutorsPanel();
         });
 
+        JButton priceDec = new JButton("Decreasing");
+        styleButton(priceDec);
+        priceDec.addActionListener(e -> {
+            tutors.sort((t1, t2) -> Integer.compare(t2.getTutoringHours(), t1.getTutoringHours()));
+            updateTutorsPanel();
+        });
+
+        JLabel sub2 = new JLabel("Rating");
+        sub2.setForeground(Color.WHITE);
+        sub2.setFont(new Font("Avenir Next", Font.PLAIN, 14));
+
+        JButton starsInc = new JButton("Increasing");
+        styleButton(starsInc);
+        // Add rating functionality if available
+        starsInc.addActionListener(e -> {
+            // Placeholder - add actual rating sort if available
+            updateTutorsPanel();
+        });
+
+        JButton starsDec = new JButton("Decreasing");
+        styleButton(starsDec);
+        // Add rating functionality if available
+        starsDec.addActionListener(e -> {
+            // Placeholder - add actual rating sort if available
+            updateTutorsPanel();
+        });
+
+        JLabel sub3 = new JLabel("GPA");
+        sub3.setForeground(Color.WHITE);
+        sub3.setFont(new Font("Avenir Next", Font.PLAIN, 14));
+
+        JButton gpaInc = new JButton("Increasing");
+        styleButton(gpaInc);
+        gpaInc.addActionListener(e -> {
+            tutors.sort((t1, t2) -> Double.compare(t1.getGpa(), t2.getGpa()));
+            updateTutorsPanel();
+        });
+
+        JButton gpaDec = new JButton("Decreasing");
+        styleButton(gpaDec);
+        gpaDec.addActionListener(e -> {
+            tutors.sort((t1, t2) -> Double.compare(t2.getGpa(), t1.getGpa()));
+            updateTutorsPanel();
+        });
+
+        arrangePanel.add(sub1);
+        arrangePanel.add(priceInc);
+        arrangePanel.add(priceDec);
+        arrangePanel.add(sub2);
+        arrangePanel.add(starsInc);
+        arrangePanel.add(starsDec);
         arrangePanel.add(sub3);
         arrangePanel.add(gpaInc);
         arrangePanel.add(gpaDec);
@@ -303,21 +376,22 @@ public class TutoringPage extends BackgroundPanel {
             }
         });
 
-        Tutor t1 = new Tutor("Mehmet Önal", 2.9, "mehmet.onal@bilkent.edu.tr", "Available", 100,3);
+        // Sample tutor data
+        Tutor t1 = new Tutor("Mehmet Önal", 2.9, "mehmet.onal@bilkent.edu.tr", "Available", 100, 3);
         t1.AddCourse("MATH101");
         t1.AddCourse("CS102");
 
-        Tutor t2 = new Tutor("Ayşe Yılmaz", 3.4, "ayse.yilmaz@bilkent.edu.tr", "Busy", 80,1);
+        Tutor t2 = new Tutor("Ayşe Yılmaz", 3.4, "ayse.yilmaz@bilkent.edu.tr", "Busy", 80, 1);
         t2.AddCourse("PHYS101");
 
-        Tutor t3 = new Tutor("Can Demir", 3.8, "can.demir@bilkent.edu.tr", "Available", 60,2);
+        Tutor t3 = new Tutor("Can Demir", 3.8, "can.demir@bilkent.edu.tr", "Available", 60, 2);
         t3.AddCourse("CS201");
         t3.AddCourse("CS202");
 
-        Tutor t4 = new Tutor("Elif Kaya", 2.7, "elif.kaya@bilkent.edu.tr", "Available", 90,4);
+        Tutor t4 = new Tutor("Elif Kaya", 2.7, "elif.kaya@bilkent.edu.tr", "Available", 90, 4);
         t4.AddCourse("CHEM101");
 
-        Tutor t5 = new Tutor("Burak Şahin", 3.0, "burak.sahin@bilkent.edu.tr", "Busy", 70,2);
+        Tutor t5 = new Tutor("Burak Şahin", 3.0, "burak.sahin@bilkent.edu.tr", "Busy", 70, 2);
         t5.AddCourse("MATH102");
 
         tutors.add(t1);
@@ -328,25 +402,40 @@ public class TutoringPage extends BackgroundPanel {
 
         for (Tutor tutor : tutors) {
             tutorsPanel.add(tutor);
-            tutorsPanel.add(Box.createRigidArea(new Dimension(0, 10))); // Tutorlar arasında boşluk
+            tutorsPanel.add(Box.createRigidArea(new Dimension(0, 10)));
         }
 
-
         middlePanel.add(tutorsScrollPane);
-
-
-        filterMoverPanel.add(filterPanel,BorderLayout.EAST);
+        filterMoverPanel.add(filterPanel, BorderLayout.EAST);
         middlePanel.add(filterMoverPanel);
 
-        add(middlePanel,BorderLayout.CENTER);
+        add(middlePanel, BorderLayout.CENTER);
+    }
+
+    private void styleButton(JButton button) {
+        button.setForeground(Color.BLACK);
+        button.setBackground(Color.WHITE);
+        button.setFont(new Font("Avenir Next", Font.PLAIN, 12));
+        button.setFocusPainted(false);
+        button.setMargin(new Insets(2, 5, 2, 5));
+    }
+
+    private void updateTutorsPanel() {
+        tutorsPanel.removeAll();
+        for (Tutor tutor : tutors) {
+            tutorsPanel.add(tutor);
+            tutorsPanel.add(Box.createRigidArea(new Dimension(0, 10)));
+        }
+        tutorsPanel.revalidate();
+        tutorsPanel.repaint();
     }
 
     private void performSearch() {
         String input = searchField.getText().trim().toLowerCase();
         tutorsPanel.removeAll();
 
-        if (input.isEmpty() || input.equals("Search...")) {
-            renderTutors(tutors);
+        if (input.isEmpty() || input.equals("search by name")) {
+            updateTutorsPanel();
         } else {
             for (Tutor tutor : tutors) {
                 if (tutor.getName().toLowerCase().contains(input)) {
@@ -358,14 +447,6 @@ public class TutoringPage extends BackgroundPanel {
 
         tutorsPanel.revalidate();
         tutorsPanel.repaint();
-    }
-
-    private void renderTutors(ArrayList<Tutor> tutorList) {
-        tutorsPanel.removeAll();
-        for (Tutor tutor : tutorList) {
-            tutorsPanel.add(tutor);
-            tutorsPanel.add(Box.createRigidArea(new Dimension(0, 10)));
-        }
     }
 
     class Tutor extends JPanel {
@@ -384,7 +465,7 @@ public class TutoringPage extends BackgroundPanel {
             this.status = status;
             this.tutoringHours = tutoringHours;
             this.coursesGiven = new ArrayList<>();
-            this.semester=semester;
+            this.semester = semester;
 
             setLayout(new BorderLayout());
             setMaximumSize(new Dimension(800, 150));
@@ -409,7 +490,7 @@ public class TutoringPage extends BackgroundPanel {
             emailLabel.setForeground(Color.LIGHT_GRAY);
             emailLabel.setFont(new Font("Avenir Next", Font.PLAIN, 14));
 
-            JLabel departmentLabel = new JLabel("Department: Example Department ("+semester+". year)");
+            JLabel departmentLabel = new JLabel("Department: Example Department (" + semester + ". year)");
             departmentLabel.setForeground(Color.LIGHT_GRAY);
             departmentLabel.setFont(new Font("Avenir Next", Font.PLAIN, 14));
 
@@ -443,15 +524,7 @@ public class TutoringPage extends BackgroundPanel {
         public String getStatus() { return status; }
         public int getTutoringHours() { return tutoringHours; }
         public ArrayList<String> getCoursesGiven() { return coursesGiven; }
-
-        public int getSemester() {
-            return semester;
-        }
-
-        public void setSemester(int semester) {
-            this.semester = semester;
-        }
-
-        
+        public int getSemester() { return semester; }
+        public void setSemester(int semester) { this.semester = semester; }
     }
 }
