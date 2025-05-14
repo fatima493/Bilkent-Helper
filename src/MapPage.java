@@ -47,7 +47,13 @@ public class MapPage extends JPanel {
 
         // Load map image
         try {
+<<<<<<< Updated upstream
             mapImage = ImageIO.read(new File("backgrounds/map.png"));
+=======
+            ImageIcon originalMapIcon = new ImageIcon("background/map1.png");
+            Image scaledMap = originalMapIcon.getImage().getScaledInstance(800, 600, Image.SCALE_SMOOTH);
+            mapLabel.setIcon(new ImageIcon(scaledMap));
+>>>>>>> Stashed changes
         } catch (Exception e) {
             System.err.println("Error loading map image: " + e.getMessage());
             mapImage = null;
