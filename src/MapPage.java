@@ -91,7 +91,7 @@ public class MapPage extends JPanel {
         sidePanel.setLayout(new BoxLayout(sidePanel, BoxLayout.Y_AXIS));
         sidePanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
         sidePanel.setPreferredSize(new Dimension(250, 0));
-        sidePanel.setBackground(Color.WHITE);
+        sidePanel.setBackground(Color.BLACK);
 
         // Back to Main button
         backToMainButton = new JButton("← Back to Main");
@@ -188,7 +188,7 @@ public class MapPage extends JPanel {
         openPdfButton.addActionListener(e -> {
             try {
                 if (Desktop.isDesktopSupported()) {
-                    Desktop.getDesktop().open(new File("maps/full_campus_map.pdf"));
+                    Desktop.getDesktop().open(new File("backgrounds/map.pdf"));
                 }
             } catch (Exception ex) {
                 JOptionPane.showMessageDialog(this, "Could not open PDF file", "Error", JOptionPane.ERROR_MESSAGE);
