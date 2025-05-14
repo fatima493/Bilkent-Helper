@@ -27,10 +27,14 @@ public class MapPage extends JPanel {
     private Point userLocation = null;
     private Building selectedBuilding = null;
 
-    private String[] buildingNames = {
+    /*private String[] buildingNames = {
         "A", "B", "C", "D", "EA", "EB", "EE", "F", "G", "H", "J",
         "KM", "L", "M", "N", "P", "R", "S", "SC", "SI", "SL", "SM",
         "SN", "ST", "SU", "U", "V", "Y", "ODN"
+    };*/
+
+    private String[] buildingNames = {
+        "B","EE", "F","M", "S", "V", "ODN"
     };
 
     private String[] serviceTypes = {
@@ -335,7 +339,7 @@ public class MapPage extends JPanel {
         buildings = new ArrayList<>();
 
         // Academic Buildings
-        buildings.add(new Building("A", "Faculty of Economics, Administrative, and Social Sciences", "Buildings",
+        /*buildings.add(new Building("A", "Faculty of Economics, Administrative, and Social Sciences", "Buildings",
                 new Point(100, 150), "Services: Registrar, Student Affairs\nContacts: registrar@bilkent.edu.tr"));
         buildings.add(new Building("B", "Faculty of Law", "Buildings",
                 new Point(100, 200), "Services: Law library, classrooms"));
@@ -362,7 +366,19 @@ public class MapPage extends JPanel {
         buildings.add(new Building("SL", "Advanced Research Laboratory", "Buildings",
                 new Point(300, 200), "Research labs"));
         buildings.add(new Building("ODN", "Bilkent ODEON", "Auditoriums",
-                new Point(100, 300), "Concert hall and events"));
+                new Point(100, 300), "Concert hall and events"));*/
+
+
+         buildings.add(new Building("B", "Faculty of Law", "Buildings",
+                new Point(100, 200), "Services: Law library, classrooms"));
+        buildings.add(new Building("EE", "Electrical-Electronics Engineering", "Buildings",
+                new Point(150, 200), "EE Department offices and labs"));
+        buildings.add(new Building("F", "Faculty of Art, Design and Architecture", "Buildings",
+                new Point(200, 300), "Art studios and design labs"));
+        buildings.add(new Building("M", "Faculty of Business Administration", "Buildings",
+                new Point(150, 150), "Business school"));
+        buildings.add(new Building("S", "Faculty of Science", "Buildings",
+                new Point(100, 300), "Science departments"));
 
         // Cafes and Restaurants
         buildings.add(new Building("CAFE1", "Main Campus Cafe", "Cafes",
