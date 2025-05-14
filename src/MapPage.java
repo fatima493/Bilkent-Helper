@@ -17,7 +17,6 @@ public class MapPage extends JPanel {
     private JLabel mapLabel;
     private Image mapImage;
     private List<Building> buildings;
-    private JTextArea buildingDetails;
     private JPanel sidePanel;
     private JButton navigateButton;
     private JButton locateMeButton;
@@ -47,13 +46,7 @@ public class MapPage extends JPanel {
 
         // Load map image
         try {
-<<<<<<< Updated upstream
             mapImage = ImageIO.read(new File("backgrounds/map.png"));
-=======
-            ImageIcon originalMapIcon = new ImageIcon("background/map1.png");
-            Image scaledMap = originalMapIcon.getImage().getScaledInstance(800, 600, Image.SCALE_SMOOTH);
-            mapLabel.setIcon(new ImageIcon(scaledMap));
->>>>>>> Stashed changes
         } catch (Exception e) {
             System.err.println("Error loading map image: " + e.getMessage());
             mapImage = null;
@@ -93,7 +86,7 @@ public class MapPage extends JPanel {
         sidePanel = new JPanel();
         sidePanel.setLayout(new BoxLayout(sidePanel, BoxLayout.Y_AXIS));
         sidePanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-        sidePanel.setPreferredSize(new Dimension(300, 0));
+        sidePanel.setPreferredSize(new Dimension(250, 0));
         sidePanel.setBackground(Color.WHITE);
 
         // Back to Main button
@@ -128,17 +121,6 @@ public class MapPage extends JPanel {
         searchPanel.add(searchField);
         searchPanel.add(Box.createVerticalStrut(15));
 
-        // Locate Me button
-        /*locateMeButton = new JButton("Locate Me");
-        locateMeButton.setAlignmentX(Component.LEFT_ALIGNMENT);
-        locateMeButton.setForeground(Color.BLACK);
-        locateMeButton.addActionListener(e -> {
-            userLocation = new Point(300, 200); // Default location
-            mapLabel.repaint();
-        });
-        searchPanel.add(locateMeButton);
-        searchPanel.add(Box.createVerticalStrut(15));*/
-
         // Filter panel
         JPanel filterPanel = new JPanel();
         filterPanel.setLayout(new BoxLayout(filterPanel, BoxLayout.Y_AXIS));
@@ -159,7 +141,7 @@ public class MapPage extends JPanel {
                 selectBuildingByCode(selected);
             } else {
                 selectedBuilding = null;
-                buildingDetails.setText("Select a building to view details");
+                showBuildingDetails(null);
                 mapLabel.repaint();
             }
         });
@@ -214,15 +196,11 @@ public class MapPage extends JPanel {
         detailsLabel.setForeground(Color.BLACK);
         detailsLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        buildingDetails = new JTextArea();
-        buildingDetails.setEditable(false);
-        buildingDetails.setLineWrap(true);
-        buildingDetails.setWrapStyleWord(true);
-        buildingDetails.setFont(new Font("Arial", Font.PLAIN, 14));
-        buildingDetails.setBackground(Color.WHITE);
-        buildingDetails.setForeground(Color.BLACK);
-        buildingDetails.setText("Select a building to view details");
-        JScrollPane detailsScrollPane = new JScrollPane(buildingDetails);
+        // Create initial empty details panel
+        JPanel initialDetailsPanel = new JPanel();
+        initialDetailsPanel.setLayout(new BoxLayout(initialDetailsPanel, BoxLayout.X_AXIS));
+        initialDetailsPanel.add(new JLabel("Select a building to view details"));
+        JScrollPane detailsScrollPane = new JScrollPane(initialDetailsPanel);
         detailsScrollPane.setAlignmentX(Component.LEFT_ALIGNMENT);
 
         // Navigate button
@@ -262,6 +240,7 @@ public class MapPage extends JPanel {
             }
         }
         selectedBuilding = null;
+        showBuildingDetails(null);
     }
 
     private void openInMaps(Building building) {
@@ -499,14 +478,59 @@ public class MapPage extends JPanel {
     }
 
     private void showBuildingDetails(Building building) {
-        String details = String.format(
+        // Create a panel to hold both image and text
+        JPanel detailsPanel = new JPanel();
+        detailsPanel.setLayout(new BoxLayout(detailsPanel, BoxLayout.Y_AXIS));
+        detailsPanel.setBackground(Color.WHITE);
+        detailsPanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
+
+        if (building == null) {
+            JLabel emptyLabel = new JLabel("Select a building to view details");
+            emptyLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+            detailsPanel.add(emptyLabel);
+        } else {
+            if (building.getImage() != null) {
+                ImageIcon icon = building.getImage();
+                Image scaledImage = icon.getImage().getScaledInstance(280, 140, Image.SCALE_SMOOTH);
+                JLabel imageLabel = new JLabel(new ImageIcon(scaledImage));
+                imageLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+                detailsPanel.add(imageLabel);
+                detailsPanel.add(Box.createVerticalStrut(10));
+            } else {
+                JLabel noImageLabel = new JLabel("No image available");
+                noImageLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+                detailsPanel.add(noImageLabel);
+                detailsPanel.add(Box.createVerticalStrut(10));
+            }
+
+            String detailsText = String.format(
                 "Building Code: %s\nName: %s\nType: %s\n\nDetails:\n%s",
                 building.getCode(),
                 building.getName(),
                 building.getServiceType(),
                 building.getDetails()
-        );
-        buildingDetails.setText(details);
+            );
+
+            JTextArea textArea = new JTextArea(detailsText);
+            textArea.setEditable(false);
+            textArea.setLineWrap(true);
+            textArea.setWrapStyleWord(true);
+            textArea.setFont(new Font("Arial", Font.PLAIN, 14));
+            textArea.setBackground(Color.WHITE);
+            textArea.setForeground(Color.BLACK);
+
+            JScrollPane textScrollPane = new JScrollPane(textArea);
+            textScrollPane.setPreferredSize(new Dimension(280, 160)); // matches side panel width
+            textScrollPane.setBorder(BorderFactory.createEmptyBorder());
+
+            detailsPanel.add(textScrollPane);
+        }
+
+        JScrollPane detailsScrollPane = (JScrollPane) sidePanel.getComponent(8);
+        detailsScrollPane.setViewportView(detailsPanel);
+        detailsScrollPane.setPreferredSize(new Dimension(280, 260));
+        detailsScrollPane.revalidate();
+        detailsScrollPane.repaint();
     }
 
     private class Building {
@@ -516,6 +540,7 @@ public class MapPage extends JPanel {
         private Point location;
         private String details;
         private boolean visible;
+        private ImageIcon image;
 
         public Building(String code, String name, String serviceType, Point location, String details) {
             this.code = code;
@@ -524,6 +549,33 @@ public class MapPage extends JPanel {
             this.location = location;
             this.details = details;
             this.visible = true;
+            
+            // Try to load building image
+            try {
+                String imagePath = "building_images/" + code + ".jpeg";
+                File imageFile = new File(imagePath);
+                if (imageFile.exists()) {
+                    this.image = new ImageIcon(ImageIO.read(imageFile));
+                } else {
+                    // Try with different extensions if JPEG not found
+                    imagePath = "building_images/" + code + ".jpg";
+                    imageFile = new File(imagePath);
+                    if (imageFile.exists()) {
+                        this.image = new ImageIcon(ImageIO.read(imageFile));
+                    } else {
+                        imagePath = "building_images/" + code + ".png";
+                        imageFile = new File(imagePath);
+                        if (imageFile.exists()) {
+                            this.image = new ImageIcon(ImageIO.read(imageFile));
+                        } else {
+                            this.image = null;
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                System.err.println("Error loading image for building " + code + ": " + e.getMessage());
+                this.image = null;
+            }
         }
 
         public String getCode() { return code; }
@@ -533,5 +585,6 @@ public class MapPage extends JPanel {
         public String getDetails() { return details; }
         public boolean isVisible() { return visible; }
         public void setVisible(boolean visible) { this.visible = visible; }
+        public ImageIcon getImage() { return image; }
     }
 }
