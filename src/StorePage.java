@@ -1,5 +1,6 @@
 import javax.swing.*;
 import javax.swing.plaf.basic.BasicScrollBarUI;
+
 import java.awt.*;
 import java.util.ArrayList;
 
@@ -7,7 +8,7 @@ public class StorePage extends BackgroundPanel {
 
     private ArrayList<Book> books;
     public StorePage(AppFrame frame) {
-        this.books = new ArrayList<>();
+        this.books=new ArrayList<>();
         setLayout(new BorderLayout());
 
         // Ekran boyutuna göre margin ayarla
@@ -19,7 +20,7 @@ public class StorePage extends BackgroundPanel {
         JPanel topPanel = new JPanel(new FlowLayout());
         topPanel.setOpaque(false);
 
-        // Sol: Başlık
+// Sol: Başlık
         JLabel topLeftLabel = new JLabel("BILKENT HELPER | STORE                                                               ");
         topLeftLabel.setFont(new Font("Avenir Next", Font.PLAIN, 20));
         topLeftLabel.setForeground(Color.WHITE);
@@ -34,9 +35,7 @@ public class StorePage extends BackgroundPanel {
         JTextField searchField = new JTextField(20);
         searchField.setText("Search...");
         searchField.setFont(new Font("Avenir Next", Font.PLAIN, 14));
-        searchField.setForeground(Color.BLACK); // Set text color to black
-        searchField.setOpaque(true);
-        searchField.setBackground(Color.WHITE);
+        searchField.setOpaque(false);
 
         ImageIcon searchIcon = new ImageIcon("logos/search-icon.png");
         Image scaledImage = searchIcon.getImage().getScaledInstance(40, 40, Image.SCALE_SMOOTH);
@@ -47,17 +46,12 @@ public class StorePage extends BackgroundPanel {
         searchButton.setBorderPainted(false);
         searchButton.setFocusPainted(false);
         searchButton.setOpaque(false);
-        searchButton.addActionListener(e -> {
-            String keyword = searchField.getText().trim().toLowerCase();
-            // Implement search functionality here if needed
-        });
 
         searchPanel.add(searchField);
         searchPanel.add(searchButton);
 
         topPanel.add(searchPanel);
-
-        // Sağ: Menu butonu
+// Sağ: Menu butonu
         ImageIcon backIcon = new ImageIcon("logos/go-back-logo.png");
         JButton backBtn = new JButton(backIcon);
         backBtn.setContentAreaFilled(false);
@@ -65,7 +59,7 @@ public class StorePage extends BackgroundPanel {
         backBtn.setFocusPainted(false);
         backBtn.setOpaque(false);
         backBtn.setPreferredSize(new Dimension(40, 40));
-        backBtn.addActionListener(e -> frame.showPage("main"));
+        backBtn.addActionListener(e -> frame.showPage("main")); //TODO:PROFIL
 
         ImageIcon profileIcon = new ImageIcon("logos/profile-icon.png");
         JButton profileBtn = new JButton(profileIcon);
@@ -74,7 +68,7 @@ public class StorePage extends BackgroundPanel {
         profileBtn.setFocusPainted(false);
         profileBtn.setOpaque(false);
         profileBtn.setPreferredSize(new Dimension(40, 40));
-        profileBtn.addActionListener(e -> frame.showPage("profile"));
+        profileBtn.addActionListener(e -> frame.showPage("profile")); //TODO:PROFIL
 
         JPanel rightPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         rightPanel.setOpaque(false);
@@ -82,10 +76,12 @@ public class StorePage extends BackgroundPanel {
         rightPanel.add(profileBtn);
         topPanel.add(rightPanel, BorderLayout.EAST);
 
-        // Top panel'i ana sayfaya ekle
+    
+
+// Top panel'i ana sayfaya ekle
         add(topPanel, BorderLayout.NORTH);
 
-        // TUTORS AND FILTER PANELS
+//TUTORS AND FILTER PANELS
         JPanel middlePanel = new JPanel(new GridLayout(1,2));
         middlePanel.setOpaque(false);
 
@@ -126,6 +122,7 @@ public class StorePage extends BackgroundPanel {
             }
         });
 
+
         JPanel filterMoverPanel = new JPanel();
         filterMoverPanel.setOpaque(false);
 
@@ -145,9 +142,6 @@ public class StorePage extends BackgroundPanel {
         subTitle.setFont(new Font("Avenir Next", Font.PLAIN, 14));
 
         JTextField searchField1 = new JTextField();
-        searchField1.setForeground(Color.BLACK); // Set text color to black
-        searchField1.setOpaque(true);
-        searchField1.setBackground(Color.WHITE);
         searchField1.addActionListener(e -> {
             String keyword = searchField1.getText().trim().toLowerCase();
 
@@ -180,7 +174,6 @@ public class StorePage extends BackgroundPanel {
         sortTitle.setFont(new Font("Avenir Next", Font.PLAIN, 20));
 
         JButton priceInc = new JButton("Increasing");
-        styleButton(priceInc);
         priceInc.addActionListener(e -> {
             for (int i = 0; i < books.size(); i++) {
                 for (int j = i + 1; j < books.size(); j++) {
@@ -195,7 +188,6 @@ public class StorePage extends BackgroundPanel {
         });
 
         JButton priceDec = new JButton("Decreasing");
-        styleButton(priceDec);
         priceDec.addActionListener(e -> {
             for (int i = 0; i < books.size(); i++) {
                 for (int j = i + 1; j < books.size(); j++) {
@@ -218,37 +210,34 @@ public class StorePage extends BackgroundPanel {
         filterPanel.add(byPanel);
         filterPanel.add(arrangePanel);
 
-        // Add sample books
-        books.add(new Book("İnce Memed", "Yaşar Kemal", "Good", 300, profileIcon,"example@bilkent.edu.tr"));
-        books.add(new Book("İnce Memed", "Yaşar Kemal", "Good", 250, profileIcon,"example@bilkent.edu.tr"));
-        books.add(new Book("İnce Memed", "Yaşar Kemal", "Good", 3, profileIcon,"example@bilkent.edu.tr"));
-        books.add(new Book("İnce Memed", "Yaşar Kemal", "Good", 30, profileIcon,"example@bilkent.edu.tr"));
-        books.add(new Book("İnce Memed", "Yaşar Kemal", "Good", 300, profileIcon,"example@bilkent.edu.tr"));
-        books.add(new Book("İnce Memed", "Yaşar Kemal", "Good", 300, profileIcon,"example@bilkent.edu.tr"));
-        books.add(new Book("İnce Memed", "Yaşar Kemal", "Good", 300, profileIcon,"example@bilkent.edu.tr"));
-        books.add(new Book("İnce Memed", "Yaşar Kemal", "Good", 300, profileIcon,"example@bilkent.edu.tr"));
-        books.add(new Book("İnce Memed", "Yaşar Kemal", "Good", 300, profileIcon,"example@bilkent.edu.tr"));
-        books.add(new Book("İnce Memed", "Yaşar Kemal", "Good", 300, profileIcon,"example@bilkent.edu.tr"));
+
+        books.add(new Book("Gölgedeki Adam", "Yaşar Kemal", "Good", 234, profileIcon, "example@bilkent.edu.tr"));
+        books.add(new Book("Kırık Zamanlar", "Orhan Pamuk", "Good", 371, profileIcon, "example@bilkent.edu.tr"));
+        books.add(new Book("Gece ve Sis", "Elif Şafak", "Good", 289, profileIcon, "example@bilkent.edu.tr"));
+        books.add(new Book("Yitik Hayaller", "Ahmet Ümit", "Good", 327, profileIcon, "example@bilkent.edu.tr"));
+        books.add(new Book("Rüzgarın Ardında", "Latife Tekin", "Good", 219, profileIcon, "example@bilkent.edu.tr"));
+        books.add(new Book("Sessiz Çığlık", "Sabahattin Ali", "Good", 400, profileIcon, "example@bilkent.edu.tr"));
+        books.add(new Book("Kum Saati", "Ayşe Kulin", "Good", 255, profileIcon, "example@bilkent.edu.tr"));
+        books.add(new Book("Yalnızlığın Rengi", "Zülfü Livaneli", "Good", 342, profileIcon, "example@bilkent.edu.tr"));
+        books.add(new Book("Uçurumun Kenarında", "Nazım Hikmet", "Good", 293, profileIcon, "example@bilkent.edu.tr"));
+        books.add(new Book("Sonsuzluk Sokağı", "Oğuz Atay", "Good", 376, profileIcon, "example@bilkent.edu.tr"));
+
+
+
 
         for (Book book : books) {
             booksPanel.add(book);
             booksPanel.add(Box.createRigidArea(new Dimension(0, 10))); // Tutorlar arasında boşluk
         }
 
+
         middlePanel.add(tutorsScrollPane);
+
+
         filterMoverPanel.add(filterPanel,BorderLayout.EAST);
         middlePanel.add(filterMoverPanel);
 
         add(middlePanel,BorderLayout.CENTER);
-    }
-
-    private void styleButton(JButton button) {
-        button.setForeground(Color.BLACK);
-        button.setBackground(Color.WHITE);
-        button.setOpaque(true);
-        button.setBorderPainted(false);
-        button.setFocusPainted(false);
-        button.setFont(new Font("Avenir Next", Font.PLAIN, 14));
     }
 
     private void refreshBooksPanel(JPanel booksPanel) {
@@ -261,93 +250,96 @@ public class StorePage extends BackgroundPanel {
         booksPanel.repaint();
     }
 
-    private void refreshBooksPanelWithFilteredList(JPanel booksPanel, ArrayList<Book> filteredBooks) {
-        booksPanel.removeAll();
-        for (int i = 0; i < filteredBooks.size(); i++) {
-            booksPanel.add(filteredBooks.get(i));
-            booksPanel.add(Box.createRigidArea(new Dimension(0, 10)));
+        private void refreshBooksPanelWithFilteredList(JPanel booksPanel, ArrayList<Book> filteredBooks) {
+            booksPanel.removeAll();
+            for (int i = 0; i < filteredBooks.size(); i++) {
+                booksPanel.add(filteredBooks.get(i));
+            }
+            booksPanel.revalidate();
+            booksPanel.repaint();
         }
-        booksPanel.revalidate();
-        booksPanel.repaint();
-    }
+
 
     public class Book extends JPanel {
-        private String title;
-        private String author;
-        private String condition;
-        private int price;
-        private String contactMail;
-        private ImageIcon coverImage;
+    private String title;
+    private String author;
+    private String condition;
+    private int price;
+    private String contactMail;
+    private ImageIcon coverImage;
 
-        public Book(String title, String author, String condition, int price, ImageIcon coverImage, String contactMail) {
-            this.title = title;
-            this.author = author;
-            this.condition = condition;
-            this.price = price;
-            this.coverImage = coverImage;
-            this.contactMail = contactMail;
+    public Book(String title, String author, String condition, int price, ImageIcon coverImage, String contactMail) {
+        this.title = title;
+        this.author = author;
+        this.condition = condition;
+        this.price = price;
+        this.coverImage = coverImage;
+        this.contactMail = contactMail;
 
-            setLayout(new BorderLayout());
-            setMaximumSize(new Dimension(800, 150));
-            setBackground(new Color(0, 0, 0, 230));
-            setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
-            setOpaque(true);
+        setLayout(new BorderLayout());
+        setMaximumSize(new Dimension(800, 150));
+        setBackground(new Color(0, 0, 0, 230));
+        setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
+        setOpaque(true);
 
-            // Sol: Kitap kapağı
-            JLabel imageLabel = new JLabel();
-            if (coverImage != null) {
-                Image img = coverImage.getImage().getScaledInstance(100, 120, Image.SCALE_SMOOTH);
-                imageLabel.setIcon(new ImageIcon(img));
-            } else {
-                imageLabel.setPreferredSize(new Dimension(100, 120));
-                imageLabel.setOpaque(true);
-                imageLabel.setBackground(Color.DARK_GRAY);
-            }
-
-            JPanel imagePanel = new JPanel();
-            imagePanel.setOpaque(false);
-            imagePanel.add(imageLabel);
-
-            // Orta: Bilgiler
-            JPanel infoPanel = new JPanel();
-            infoPanel.setLayout(new BoxLayout(infoPanel, BoxLayout.Y_AXIS));
-            infoPanel.setOpaque(false);
-
-            JLabel titleLabel = new JLabel(title);
-            titleLabel.setForeground(Color.WHITE);
-            titleLabel.setFont(new Font("Avenir Next", Font.BOLD, 16));
-
-            JLabel authorLabel = new JLabel("Author: " + author);
-            authorLabel.setForeground(Color.LIGHT_GRAY);
-            authorLabel.setFont(new Font("Avenir Next", Font.PLAIN, 14));
-
-            JLabel conditionLabel = new JLabel("Condition: " + condition);
-            conditionLabel.setForeground(Color.LIGHT_GRAY);
-            conditionLabel.setFont(new Font("Avenir Next", Font.PLAIN, 14));
-
-            JLabel priceLabel = new JLabel("Price: " + price + "TL");
-            priceLabel.setForeground(Color.LIGHT_GRAY);
-            priceLabel.setFont(new Font("Avenir Next", Font.PLAIN, 14));
-
-            JLabel mailLabel = new JLabel("Contact: " + contactMail);
-            mailLabel.setForeground(Color.LIGHT_GRAY);
-            mailLabel.setFont(new Font("Avenir Next", Font.PLAIN, 14));
-
-            infoPanel.add(titleLabel);
-            infoPanel.add(authorLabel);
-            infoPanel.add(conditionLabel);
-            infoPanel.add(priceLabel);
-            infoPanel.add(mailLabel);
-
-            add(imagePanel, BorderLayout.WEST);
-            add(infoPanel, BorderLayout.CENTER);
+        // Sol: Kitap kapağı
+        JLabel imageLabel = new JLabel();
+        if (coverImage != null) {
+            Image img = coverImage.getImage().getScaledInstance(100, 120, Image.SCALE_SMOOTH);
+            imageLabel.setIcon(new ImageIcon(img));
+        } else {
+            imageLabel.setPreferredSize(new Dimension(100, 120));
+            imageLabel.setOpaque(true);
+            imageLabel.setBackground(Color.DARK_GRAY);
         }
 
-        // Getter methods
-        public String getTitle() { return title; }
-        public String getAuthor() { return author; }
-        public String getCondition() { return condition; }
-        public int getPrice() { return price; }
-        public String getContactMail() { return contactMail; }
+        JPanel imagePanel = new JPanel();
+        imagePanel.setOpaque(false);
+        imagePanel.add(imageLabel);
+
+        // Orta: Bilgiler
+        JPanel infoPanel = new JPanel();
+        infoPanel.setLayout(new BoxLayout(infoPanel, BoxLayout.Y_AXIS));
+        infoPanel.setOpaque(false);
+
+        JLabel titleLabel = new JLabel(title);
+        titleLabel.setForeground(Color.WHITE);
+        titleLabel.setFont(new Font("Avenir Next", Font.BOLD, 16));
+
+        JLabel authorLabel = new JLabel("Author: " + author);
+        authorLabel.setForeground(Color.LIGHT_GRAY);
+        authorLabel.setFont(new Font("Avenir Next", Font.PLAIN, 14));
+
+        JLabel conditionLabel = new JLabel("Condition: " + condition);
+        conditionLabel.setForeground(Color.LIGHT_GRAY);
+        conditionLabel.setFont(new Font("Avenir Next", Font.PLAIN, 14));
+
+        JLabel priceLabel = new JLabel("Price: " + price + "TL");
+        priceLabel.setForeground(Color.LIGHT_GRAY);
+        priceLabel.setFont(new Font("Avenir Next", Font.PLAIN, 14));
+
+        JLabel mailLabel = new JLabel("Contact: " + contactMail);
+        mailLabel.setForeground(Color.LIGHT_GRAY);
+        mailLabel.setFont(new Font("Avenir Next", Font.PLAIN, 14));
+
+        infoPanel.add(titleLabel);
+        infoPanel.add(authorLabel);
+        infoPanel.add(conditionLabel);
+        infoPanel.add(priceLabel);
+        infoPanel.add(mailLabel);
+
+        add(imagePanel, BorderLayout.WEST);
+        add(infoPanel, BorderLayout.CENTER);
     }
+
+    // Getter methods
+    public String getTitle() { return title; }
+    public String getAuthor() { return author; }
+    public String getCondition() { return condition; }
+    public int getPrice() { return price; }
+    public String getContactMail() { return contactMail; }
+}
+
+
+    
 }
