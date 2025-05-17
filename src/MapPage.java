@@ -1,561 +1,381 @@
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
-import javax.swing.event.*;
 import java.util.*;
 import java.util.List;
 import java.io.File;
-import javax.imageio.ImageIO;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import javax.imageio.ImageIO;
+import javax.swing.event.DocumentListener;
 
 public class MapPage extends JPanel {
-    private AppFrame parentFrame;
-    private JTextField searchField;
-    private JButton openPdfButton;
+    private AppFrame parent;
     private JLabel mapLabel;
-    private Image mapImage;
+    private JPanel rightPanel, buttonPanel, infoPanel;
+    private JTextField searchField;
+    private JTextArea buildingDetailsText;
+    private JLabel buildingImageLabel;
+    private JButton navigateButton, zoomInBtn, zoomOutBtn;
     private List<Building> buildings;
-    private JPanel sidePanel;
-    private JButton navigateButton;
-    private JButton locateMeButton;
-    private JButton backToMainButton;
     private JComboBox<String> buildingFilter;
-    private ButtonGroup serviceButtonGroup;
+    private DefaultListModel<Building> resultsListModel;
+    private JList<Building> resultsList;
+    private Image mapImage;
+    private double zoomFactor = 1.0;
+    private String currentCategory = "All";
+    private Set<String> visibleBuildingCodes = new HashSet<>();
+    private Building currentSelectedBuilding = null;
 
-    private Point userLocation = null;
-    private Building selectedBuilding = null;
-
-    /*private String[] buildingNames = {
-        "A", "B", "C", "D", "EA", "EB", "EE", "F", "G", "H", "J",
-        "KM", "L", "M", "N", "P", "R", "S", "SC", "SI", "SL", "SM",
-        "SN", "ST", "SU", "U", "V", "Y", "ODN"
-    };*/
-
-    private String[] buildingNames = {
-        "B","EE", "F","M", "S", "V", "ODN"
+    private static final String[] CATEGORIES = {
+        "All", "Buildings", "Cafes", "Restaurants", "Parking_Lots", 
+        "Stores", "Dormitories", "Administrations", "Sports_Areas", "Auditoriums"
     };
 
-    private String[] serviceTypes = {
-        "All", "Buildings", "Cafes", "Restaurants", "Parking Lots", "Stores",
-        "Administrations", "Dormitories", "Sports Areas", "Library", "Auditoriums"
-    };
-
-    public MapPage(AppFrame frame) {
-        this.parentFrame = frame;
+    public MapPage(AppFrame parent) {
+        this.parent = parent;
         setLayout(new BorderLayout());
-        setBackground(Color.WHITE);
-        initializeBuildings();
+        setBackground(Color.BLACK);
 
-        // Load map image
         try {
-            mapImage = ImageIO.read(new File("backgrounds/map.png"));
-        } catch (Exception e) {
-            System.err.println("Error loading map image: " + e.getMessage());
-            mapImage = null;
+            mapImage = ImageIO.read(new File("backgrounds/map1.png"));
+        } catch (IOException e) {
+            e.printStackTrace();
         }
 
-        // Main content area
-        JPanel contentPanel = new JPanel(new BorderLayout());
-        contentPanel.setBackground(Color.WHITE);
+        initializeBuildings();
 
-        // Map display area
         mapLabel = new JLabel() {
-            @Override
             protected void paintComponent(Graphics g) {
                 super.paintComponent(g);
                 if (mapImage != null) {
-                    g.drawImage(mapImage, 0, 0, getWidth(), getHeight(), this);
-                }
-                drawBuildingMarkers(g);
-                drawUserLocation(g);
-                if (selectedBuilding != null) {
-                    drawSelectedBuilding(g);
+                    int width = (int)(mapImage.getWidth(null) * zoomFactor);
+                    int height = (int)(mapImage.getHeight(null) * zoomFactor);
+                    setPreferredSize(new Dimension(width, height));
+                    g.drawImage(mapImage, 0, 0, width, height, this);
+                    drawBuildingMarkers(g, width, height);
                 }
             }
         };
-        mapLabel.setHorizontalAlignment(JLabel.CENTER);
-        mapLabel.setBackground(Color.WHITE);
         mapLabel.addMouseListener(new MouseAdapter() {
-            @Override
             public void mouseClicked(MouseEvent e) {
                 handleMapClick(e.getPoint());
             }
         });
 
-        contentPanel.add(new JScrollPane(mapLabel), BorderLayout.CENTER);
+        JScrollPane mapScroll = new JScrollPane(mapLabel);
+        mapScroll.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
+        mapScroll.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
+        mapScroll.getViewport().setBackground(Color.BLACK);
+        add(mapScroll, BorderLayout.CENTER);
 
-        // Side panel (right side)
-        sidePanel = new JPanel();
-        sidePanel.setLayout(new BoxLayout(sidePanel, BoxLayout.Y_AXIS));
-        sidePanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-        sidePanel.setPreferredSize(new Dimension(250, 0));
-        sidePanel.setBackground(Color.BLACK);
+        rightPanel = new JPanel(new BorderLayout());
+        rightPanel.setPreferredSize(new Dimension(350, 0));
+        rightPanel.setBackground(Color.BLACK);
 
-        // Back to Main button
-        backToMainButton = new JButton("← Back to Main");
-        backToMainButton.setAlignmentX(Component.LEFT_ALIGNMENT);
-        backToMainButton.setForeground(Color.BLACK);
-        backToMainButton.setBackground(Color.WHITE);
-        backToMainButton.setBorder(BorderFactory.createEmptyBorder());
-        backToMainButton.addActionListener(e -> parentFrame.showPage("main"));
-        sidePanel.add(backToMainButton);
-        sidePanel.add(Box.createVerticalStrut(10));
+        JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        topPanel.setBackground(Color.BLACK);
+        JButton goBackBtn = new JButton(new ImageIcon("logos/go-back-logo.png"));
+        goBackBtn.setPreferredSize(new Dimension(40, 40));
+        goBackBtn.setBackground(Color.BLACK);
+        goBackBtn.setBorder(BorderFactory.createEmptyBorder());
+        goBackBtn.addActionListener(e -> parent.showPage("main"));
+        JLabel exitLabel = new JLabel("EXIT | MAP");
+        exitLabel.setForeground(Color.WHITE);
+        exitLabel.setFont(new Font("Arial", Font.BOLD, 16));
+        topPanel.add(goBackBtn);
+        topPanel.add(exitLabel);
+        rightPanel.add(topPanel, BorderLayout.NORTH);
 
-        // Search panel
-        JPanel searchPanel = new JPanel();
-        searchPanel.setLayout(new BoxLayout(searchPanel, BoxLayout.Y_AXIS));
-        searchPanel.setBackground(Color.WHITE);
+        buttonPanel = new JPanel();
+        buttonPanel.setLayout(new BoxLayout(buttonPanel, BoxLayout.Y_AXIS));
+        buttonPanel.setBackground(Color.BLACK);
+        buttonPanel.setPreferredSize(new Dimension(100, 0));
+
+        // Add "All" button first
+        JButton allBtn = new JButton(new ImageIcon(new ImageIcon("logos/all.png").getImage().getScaledInstance(60, 60, Image.SCALE_SMOOTH)));
+        allBtn.setPreferredSize(new Dimension(80, 80));
+        allBtn.setMaximumSize(new Dimension(80, 80));
+        allBtn.setBackground(Color.BLACK);
+        allBtn.setBorder(BorderFactory.createEmptyBorder());
+        allBtn.setToolTipText("All");
+        allBtn.addActionListener(e -> {
+            currentCategory = "All";
+            currentSelectedBuilding = null;
+            clearBuildingDetails();
+            updateResults();
+            mapLabel.repaint();
+        });
+        buttonPanel.add(allBtn);
+        buttonPanel.add(Box.createVerticalStrut(8));
+
+        // Add other category buttons
+        for (String cat : CATEGORIES) {
+            if (cat.equals("All")) continue; // Skip "All" as we already added it
+            
+            JButton btn = new JButton(new ImageIcon(new ImageIcon("logos/" + cat.toLowerCase() + ".png").getImage().getScaledInstance(60, 60, Image.SCALE_SMOOTH)));
+            btn.setPreferredSize(new Dimension(80, 80));
+            btn.setMaximumSize(new Dimension(80, 80));
+            btn.setBackground(Color.BLACK);
+            btn.setBorder(BorderFactory.createEmptyBorder());
+            btn.setToolTipText(cat);
+            btn.addActionListener(e -> {
+                currentCategory = cat.replace("_", " ");
+                currentSelectedBuilding = null;
+                clearBuildingDetails();
+                updateResults();
+                mapLabel.repaint();
+            });
+            buttonPanel.add(btn);
+            buttonPanel.add(Box.createVerticalStrut(8));
+        }
+
+        // Add zoom buttons at the bottom
+        buttonPanel.add(Box.createVerticalGlue());
+        
+        zoomInBtn = new JButton("+");
+zoomInBtn.setFont(new Font("Arial", Font.BOLD, 20)); // Sembol büyüklüğü artırıldı
+zoomInBtn.setPreferredSize(new Dimension(80, 30));
+zoomInBtn.setMaximumSize(new Dimension(80, 30));
+zoomInBtn.setBackground(Color.BLACK);
+zoomInBtn.setForeground(Color.BLACK);
+zoomInBtn.addActionListener(e -> {
+    zoomFactor *= 1.1;
+    mapLabel.revalidate();
+    mapLabel.repaint();
+});
+
+zoomOutBtn = new JButton("-");
+zoomOutBtn.setFont(new Font("Arial", Font.BOLD, 20)); // Sembol büyüklüğü artırıldı
+zoomOutBtn.setPreferredSize(new Dimension(80, 30));
+zoomOutBtn.setMaximumSize(new Dimension(80, 30));
+zoomOutBtn.setBackground(Color.BLACK);
+zoomOutBtn.setForeground(Color.BLACK);
+zoomOutBtn.addActionListener(e -> {
+    zoomFactor /= 1.1;
+    mapLabel.revalidate();
+    mapLabel.repaint();
+});
+
+
+        buttonPanel.add(Box.createVerticalStrut(10));
+        buttonPanel.add(zoomInBtn);
+        buttonPanel.add(Box.createVerticalStrut(5));
+        buttonPanel.add(zoomOutBtn);
+
+        JPanel contentPanel = new JPanel();
+        contentPanel.setLayout(new BoxLayout(contentPanel, BoxLayout.Y_AXIS));
+        contentPanel.setBackground(Color.BLACK);
 
         searchField = new JTextField();
-        searchField.setMaximumSize(new Dimension(Integer.MAX_VALUE, searchField.getPreferredSize().height));
+        searchField.setMaximumSize(new Dimension(Integer.MAX_VALUE, 35));
+        searchField.setBackground(Color.WHITE);
         searchField.setForeground(Color.BLACK);
-        searchField.getDocument().addDocumentListener(new DocumentListener() {
-            public void changedUpdate(DocumentEvent e) { filterBuildings(); }
-            public void removeUpdate(DocumentEvent e) { filterBuildings(); }
-            public void insertUpdate(DocumentEvent e) { filterBuildings(); }
+        searchField.setCaretColor(Color.BLACK);
+        searchField.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
+            public void insertUpdate(javax.swing.event.DocumentEvent e) { updateResults(); }
+            public void removeUpdate(javax.swing.event.DocumentEvent e) { updateResults(); }
+            public void changedUpdate(javax.swing.event.DocumentEvent e) { updateResults(); }
         });
 
-        JLabel searchLabel = new JLabel("Search:");
-        searchLabel.setForeground(Color.BLACK);
-        searchLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
-        searchPanel.add(searchLabel);
-        searchPanel.add(Box.createVerticalStrut(5));
-        searchPanel.add(searchField);
-        searchPanel.add(Box.createVerticalStrut(15));
-
-        // Filter panel
-        JPanel filterPanel = new JPanel();
-        filterPanel.setLayout(new BoxLayout(filterPanel, BoxLayout.Y_AXIS));
-        filterPanel.setBackground(Color.WHITE);
-
-        JLabel buildingLabel = new JLabel("Building:");
-        buildingLabel.setForeground(Color.BLACK);
-        buildingLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
-        
-        buildingFilter = new JComboBox<>(buildingNames);
-        buildingFilter.insertItemAt("All Buildings", 0);
-        buildingFilter.setSelectedIndex(0);
-        buildingFilter.setMaximumSize(new Dimension(Integer.MAX_VALUE, buildingFilter.getPreferredSize().height));
+        buildingFilter = new JComboBox<>();
+        buildingFilter.addItem("All");
+        for (Building b : buildings) buildingFilter.addItem(b.getCode());
+        buildingFilter.setBackground(Color.WHITE);
         buildingFilter.setForeground(Color.BLACK);
-        buildingFilter.addActionListener(e -> {
-            String selected = (String) buildingFilter.getSelectedItem();
-            if (!"All Buildings".equals(selected)) {
-                selectBuildingByCode(selected);
-            } else {
-                selectedBuilding = null;
-                showBuildingDetails(null);
-                mapLabel.repaint();
-            }
-        });
+        buildingFilter.setMaximumSize(new Dimension(Integer.MAX_VALUE, 35));
+        buildingFilter.addActionListener(e -> updateResults());
 
-        // Service buttons
-        JPanel serviceButtonsPanel = new JPanel(new GridLayout(0, 2, 5, 5));
-        serviceButtonsPanel.setBackground(Color.WHITE);
-        serviceButtonGroup = new ButtonGroup();
+        resultsListModel = new DefaultListModel<>();
+        resultsList = new JList<>(resultsListModel);
+        resultsList.setBackground(Color.BLACK);
+        resultsList.setForeground(Color.WHITE);
+        resultsList.setSelectionBackground(Color.DARK_GRAY);
+        resultsList.setBorder(null);
+        resultsList.addListSelectionListener(e -> showBuildingDetails(resultsList.getSelectedValue()));
+        JScrollPane resultScroll = new JScrollPane(resultsList);
+        resultScroll.setPreferredSize(new Dimension(60, 70));
+        resultScroll.setBorder(null);
 
-        for (String serviceType : serviceTypes) {
-            JToggleButton serviceButton = new JToggleButton(serviceType);
-            serviceButton.setBackground(Color.WHITE);
-            serviceButton.setForeground(Color.BLACK);
-            serviceButton.setActionCommand(serviceType);
-            serviceButton.addActionListener(e -> filterBuildings());
-            serviceButtonGroup.add(serviceButton);
-            serviceButtonsPanel.add(serviceButton);
+        infoPanel = new JPanel();
+        infoPanel.setLayout(new BoxLayout(infoPanel, BoxLayout.Y_AXIS));
+        infoPanel.setBackground(Color.BLACK);
 
-            if (serviceType.equals("All")) {
-                serviceButton.setSelected(true);
-            }
-        }
+        buildingImageLabel = new JLabel();
+        buildingImageLabel.setPreferredSize(new Dimension(280, 140));
+        buildingDetailsText = new JTextArea();
+        buildingDetailsText.setEditable(false);
+        buildingDetailsText.setLineWrap(true);
+        buildingDetailsText.setWrapStyleWord(true);
+        buildingDetailsText.setForeground(Color.WHITE);
+        buildingDetailsText.setBackground(Color.BLACK);
+        JScrollPane infoScroll = new JScrollPane(buildingDetailsText);
+        infoScroll.setPreferredSize(new Dimension(280, 120));
+        infoScroll.setBorder(BorderFactory.createEmptyBorder());
 
-        filterPanel.add(buildingLabel);
-        filterPanel.add(Box.createVerticalStrut(5));
-        filterPanel.add(buildingFilter);
-        filterPanel.add(Box.createVerticalStrut(10));
-        
-        JLabel serviceLabel = new JLabel("Service:");
-        serviceLabel.setForeground(Color.BLACK);
-        filterPanel.add(serviceLabel);
-        filterPanel.add(Box.createVerticalStrut(5));
-        filterPanel.add(serviceButtonsPanel);
-        filterPanel.add(Box.createVerticalStrut(15));
-
-        // PDF button
-        openPdfButton = new JButton("Open Full Map PDF");
-        openPdfButton.setAlignmentX(Component.LEFT_ALIGNMENT);
-        openPdfButton.setForeground(Color.BLACK);
-        openPdfButton.addActionListener(e -> {
-            try {
-                if (Desktop.isDesktopSupported()) {
-                    Desktop.getDesktop().open(new File("backgrounds/map.pdf"));
-                }
-            } catch (Exception ex) {
-                JOptionPane.showMessageDialog(this, "Could not open PDF file", "Error", JOptionPane.ERROR_MESSAGE);
-            }
-        });
-
-        // Building details
-        JLabel detailsLabel = new JLabel("Building Details:");
-        detailsLabel.setForeground(Color.BLACK);
-        detailsLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
-
-        // Create initial empty details panel
-        JPanel initialDetailsPanel = new JPanel();
-        initialDetailsPanel.setLayout(new BoxLayout(initialDetailsPanel, BoxLayout.X_AXIS));
-        initialDetailsPanel.add(new JLabel("Select a building to view details"));
-        JScrollPane detailsScrollPane = new JScrollPane(initialDetailsPanel);
-        detailsScrollPane.setAlignmentX(Component.LEFT_ALIGNMENT);
-
-        // Navigate button
-        navigateButton = new JButton("Navigate to Location");
-        navigateButton.setAlignmentX(Component.LEFT_ALIGNMENT);
-        navigateButton.setForeground(Color.BLACK);
-        navigateButton.addActionListener(e -> {
-            if (selectedBuilding != null) {
-                openInMaps(selectedBuilding);
-            } else {
-                JOptionPane.showMessageDialog(this, "Please select a building first");
-            }
-        });
-
-        // Add components to side panel
-        sidePanel.add(searchPanel);
-        sidePanel.add(filterPanel);
-        sidePanel.add(openPdfButton);
-        sidePanel.add(Box.createVerticalStrut(15));
-        sidePanel.add(detailsLabel);
-        sidePanel.add(Box.createVerticalStrut(5));
-        sidePanel.add(detailsScrollPane);
-        sidePanel.add(Box.createVerticalStrut(10));
-        sidePanel.add(navigateButton);
-
-        contentPanel.add(sidePanel, BorderLayout.EAST);
-        add(contentPanel, BorderLayout.CENTER);
-    }
-
-    private void selectBuildingByCode(String code) {
-        for (Building b : buildings) {
-            if (b.getCode().equals(code)) {
-                selectedBuilding = b;
-                showBuildingDetails(b);
-                mapLabel.repaint();
-                return;
-            }
-        }
-        selectedBuilding = null;
-        showBuildingDetails(null);
-    }
-
-    private void openInMaps(Building building) {
+        navigateButton = new JButton("Git");
+navigateButton.setMaximumSize(new Dimension(280, 30));
+navigateButton.setAlignmentX(Component.LEFT_ALIGNMENT);
+navigateButton.addActionListener(e -> {
+    if (currentSelectedBuilding != null) {
         try {
-            // Coordinates for Bilkent University (approximate center)
-            double latitude = 39.8688;
-            double longitude = 32.7501;
-            
-            // Adjust coordinates based on building
-            switch(building.getCode()) {
-                case "A":
-                    latitude = 39.8690; longitude = 32.7505;
-                    break;
-                case "B":
-                    latitude = 39.8685; longitude = 32.7500;
-                    break;
-                case "EA":
-                    latitude = 39.8695; longitude = 32.7495;
-                    break;
-                case "KM":
-                    latitude = 39.8670; longitude = 32.7520;
-                    break;
-                // Add more buildings as needed
-                default:
-                    // Use default coordinates
-            }
-            
-            String uriString = String.format("https://www.google.com/maps/search/?api=1&query=%.6f,%.6f(%s)", 
-                                          latitude, longitude, 
-                                          building.getName().replace(" ", "+"));
-            
-            if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
-                Desktop.getDesktop().browse(new URI(uriString));
+            String url = switch (currentSelectedBuilding.getCode()) {
+                case "EE" -> "https://www.google.com/maps/place/Department+of+Electrical+and+Electronics+Engineering/@39.8720666,32.7506535,18z";
+                case "B" -> "https://www.google.com/maps/place/Bilkent+University+Faculty+of+Law/@39.8705112,32.7487016,18z";
+                case "EA" -> "https://www.google.com/maps/place/Bilkent+University+Faculty+of+Engineering/@39.8722382,32.7491635,18z";
+                case "parking_gsf" -> "https://www.google.com/maps/place/Bilkent+University+Faculty+of+Art,+Design+and+Architecture/@39.8658995,32.7489042,18z";
+                case "stad" -> "https://www.google.com/maps/place/Bilkent+Stadium/@39.8642296,32.7432825,18z";
+                case "meteksan_ee" -> "https://www.google.com/maps/place/BilMarket/@39.8725141,32.7513408,18z";
+                case "coffeebreak_merk" -> "https://www.google.com/maps/place/Coffee+Break/@39.8717686,32.7498181,18z";
+                default -> null;
+            };
+            if (url != null) {
+                Desktop.getDesktop().browse(new URI(url));
             } else {
-                // Fallback: show URL that can be copied
-                JOptionPane.showMessageDialog(this, 
-                    "Google Maps URL:\n" + uriString, 
-                    "Navigation", 
-                    JOptionPane.INFORMATION_MESSAGE);
+                JOptionPane.showMessageDialog(this, "Bu bina için bağlantı bulunamadı.");
             }
-        } catch (Exception e) {
-            JOptionPane.showMessageDialog(this, 
-                "Error opening maps: " + e.getMessage(), 
-                "Navigation Error", 
-                JOptionPane.ERROR_MESSAGE);
+        } catch (IOException | URISyntaxException ex) {
+            ex.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Harita bağlantısı açılamadı.");
         }
     }
+});
 
-    private void drawSelectedBuilding(Graphics g) {
-        if (selectedBuilding == null || mapImage == null) return;
 
+        infoPanel.add(buildingImageLabel);
+        infoPanel.add(Box.createVerticalStrut(10));
+        infoPanel.add(infoScroll);
+        infoPanel.add(Box.createVerticalStrut(5));
+        infoPanel.add(navigateButton);
+
+        contentPanel.add(searchField);
+        contentPanel.add(Box.createVerticalStrut(10));
+        contentPanel.add(buildingFilter);
+        contentPanel.add(Box.createVerticalStrut(10));
+        contentPanel.add(resultScroll);
+        contentPanel.add(Box.createVerticalStrut(10));
+        contentPanel.add(infoPanel);
+
+        rightPanel.add(buttonPanel, BorderLayout.WEST);
+        rightPanel.add(contentPanel, BorderLayout.CENTER);
+        add(rightPanel, BorderLayout.EAST);
+
+        updateResults();
+    }
+
+    private void clearBuildingDetails() {
+        buildingImageLabel.setIcon(null);
+        buildingDetailsText.setText("");
+    }
+
+    private void drawBuildingMarkers(Graphics g, int width, int height) {
         Graphics2D g2d = (Graphics2D) g.create();
-        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        for (Building b : buildings) {
+            if (!visibleBuildingCodes.contains(b.getCode())) continue;
+            int x = (int)(b.getLocation().x * zoomFactor);
+            int y = (int)(b.getLocation().y * zoomFactor);
 
-        double scaleX = (double) mapLabel.getWidth() / mapImage.getWidth(null);
-        double scaleY = (double) mapLabel.getHeight() / mapImage.getHeight(null);
+            Color color = switch (b.getServiceType().toLowerCase()) {
+                case "cafes" -> Color.ORANGE;
+                case "restaurants" -> Color.GREEN;
+                case "stores" -> Color.BLUE;
+                case "sports_areas" -> Color.CYAN;
+                case "dormitories" -> Color.MAGENTA;
+                case "administrations" -> Color.PINK;
+                case "parking_lots" -> Color.GRAY;
+                case "auditoriums" -> Color.YELLOW;
+                default -> Color.RED;
+            };
 
-        int x = (int) (selectedBuilding.getLocation().x * scaleX);
-        int y = (int) (selectedBuilding.getLocation().y * scaleY);
-
-        // Draw a highlighted circle around selected building
-        g2d.setColor(new Color(255, 255, 0, 150));
-        g2d.setStroke(new BasicStroke(3));
-        g2d.drawOval(x - 15, y - 15, 30, 30);
-
-        g2d.dispose();
-    }
-
-    private void drawUserLocation(Graphics g) {
-        if (userLocation != null && mapImage != null) {
-            Graphics2D g2d = (Graphics2D) g.create();
-            g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-
-            double scaleX = (double) mapLabel.getWidth() / mapImage.getWidth(null);
-            double scaleY = (double) mapLabel.getHeight() / mapImage.getHeight(null);
-
-            int x = (int) (userLocation.x * scaleX);
-            int y = (int) (userLocation.y * scaleY);
-
-            g2d.setColor(Color.BLUE);
-            g2d.fillOval(x - 10, y - 10, 20, 20);
-
-            g2d.setColor(Color.WHITE);
-            g2d.setStroke(new BasicStroke(2));
-            g2d.drawOval(x - 10, y - 10, 20, 20);
-
-            g2d.dispose();
+            g2d.setColor(color);
+            g2d.fillOval(x - 6, y - 6, 12, 12);
         }
+        g2d.dispose();
     }
 
     private void initializeBuildings() {
         buildings = new ArrayList<>();
-
-        // Academic Buildings
-        /*buildings.add(new Building("A", "Faculty of Economics, Administrative, and Social Sciences", "Buildings",
-                new Point(100, 150), "Services: Registrar, Student Affairs\nContacts: registrar@bilkent.edu.tr"));
-        buildings.add(new Building("B", "Faculty of Law", "Buildings",
-                new Point(100, 200), "Services: Law library, classrooms"));
-        buildings.add(new Building("EA", "Faculty of Engineering", "Buildings",
-                new Point(250, 180), "Departments: Computer Science\nContacts: cs@bilkent.edu.tr"));
-        buildings.add(new Building("EB", "Mithat Çoruh Auditorium", "Auditoriums",
-                new Point(200, 180), "Large auditorium for events"));
-        buildings.add(new Building("EE", "Electrical-Electronics Engineering", "Buildings",
-                new Point(150, 200), "EE Department offices and labs"));
-        buildings.add(new Building("F", "Faculty of Art, Design and Architecture", "Buildings",
-                new Point(200, 300), "Art studios and design labs"));
-        buildings.add(new Building("G", "Faculty of Education", "Buildings",
-                new Point(200, 250), "Education department"));
-        buildings.add(new Building("H", "Faculty of Humanities and Letters", "Buildings",
-                new Point(200, 260), "Humanities departments"));
-        buildings.add(new Building("KM", "Library (Main Campus)", "Library",
-                new Point(580, 600), "Services: Book loans, study spaces\nOpening hours: 8:00-22:00"));
-        buildings.add(new Building("L", "Department of Translation and Interpretation", "Buildings",
-                new Point(200, 290), "Translation department"));
-        buildings.add(new Building("M", "Faculty of Business Administration", "Buildings",
-                new Point(150, 150), "Business school"));
-        buildings.add(new Building("S", "Faculty of Science", "Buildings",
-                new Point(100, 300), "Science departments"));
-        buildings.add(new Building("SL", "Advanced Research Laboratory", "Buildings",
-                new Point(300, 200), "Research labs"));
-        buildings.add(new Building("ODN", "Bilkent ODEON", "Auditoriums",
-                new Point(100, 300), "Concert hall and events"));*/
-
-
-         buildings.add(new Building("B", "Faculty of Law", "Buildings",
-                new Point(100, 200), "Services: Law library, classrooms"));
-        buildings.add(new Building("EE", "Electrical-Electronics Engineering", "Buildings",
-                new Point(150, 200), "EE Department offices and labs"));
-        buildings.add(new Building("F", "Faculty of Art, Design and Architecture", "Buildings",
-                new Point(200, 300), "Art studios and design labs"));
-        buildings.add(new Building("M", "Faculty of Business Administration", "Buildings",
-                new Point(150, 150), "Business school"));
-        buildings.add(new Building("S", "Faculty of Science", "Buildings",
-                new Point(100, 300), "Science departments"));
-
-        // Cafes and Restaurants
-        buildings.add(new Building("CAFE1", "Main Campus Cafe", "Cafes",
-                new Point(400, 400), "Coffee and snacks\nOpen 8:00-20:00"));
-        buildings.add(new Building("CAFE2", "Engineering Cafe", "Cafes",
-                new Point(260, 190), "Coffee near EA building"));
-        buildings.add(new Building("REST1", "Main Restaurant", "Restaurants",
-                new Point(500, 500), "Full meals\nOpen 11:00-15:00, 17:00-19:00"));
-
-        // Parking Lots
-        buildings.add(new Building("PARK1", "North Parking", "Parking Lots",
-                new Point(150, 100), "Main parking area"));
-        buildings.add(new Building("PARK2", "Library Parking", "Parking Lots",
-                new Point(600, 620), "Near library"));
-
-        // Administrations
-        buildings.add(new Building("ADMIN1", "Rectorate", "Administrations",
-                new Point(200, 150), "University administration"));
-        buildings.add(new Building("ADMIN2", "Student Affairs", "Administrations",
-                new Point(180, 160), "Student services"));
-
-        // Sports Areas
-        buildings.add(new Building("SPORT1", "Sports Center", "Sports Areas",
-                new Point(700, 700), "Gym and sports facilities"));
-        buildings.add(new Building("SPORT2", "Outdoor Fields", "Sports Areas",
-                new Point(720, 720), "Football and basketball courts"));
+        buildings.add(new Building("EE", "Electrical Engineering", "Buildings", new Point(700, 50), "Labs, Offices, Classrooms"));
+        buildings.add(new Building("B", "Faculty of Law", "Buildings", new Point(260,700), "Law Faculty with classrooms and offices"));
+        buildings.add(new Building("EA", "Faculty of Engineering", "Buildings", new Point(550, 250), "Engineering Faculty with labs and offices"));
+        buildings.add(new Building("coffeebreak_merk", "Coffee Break Merkez", "Cafes", new Point(500, 950), "Main Campus Cafe"));
+        buildings.add(new Building("parking_gsf", "GSF Parking", "Parking_Lots", new Point(900, 1000), "Parking lot near Fine Arts"));
+        buildings.add(new Building("stad", "Stadium", "Sports_Areas", new Point(900, 700), "Football Stadium"));
+        buildings.add(new Building("meteksan_ee", "Meteksan", "Stores", new Point(320,1150), "Convenience store near EE"));
     }
 
-    private void filterBuildings() {
-        String searchText = searchField.getText().toLowerCase();
-        String selectedService = serviceButtonGroup.getSelection().getActionCommand();
-
+    private void handleMapClick(Point click) {
         for (Building b : buildings) {
-            boolean matches = true;
-
-            // Check service type filter
-            if (!selectedService.equals("All") && !b.getServiceType().equals(selectedService)) {
-                matches = false;
-            }
-
-            // Check search text
-            if (!searchText.isEmpty() &&
-                    !b.getName().toLowerCase().contains(searchText) &&
-                    !b.getCode().toLowerCase().contains(searchText)) {
-                matches = false;
-            }
-
-            b.setVisible(matches);
-        }
-
-        mapLabel.repaint();
-    }
-
-    private void drawBuildingMarkers(Graphics g) {
-        if (buildings == null || mapImage == null) return;
-
-        Graphics2D g2d = (Graphics2D) g.create();
-        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-
-        double scaleX = (double) mapLabel.getWidth() / mapImage.getWidth(null);
-        double scaleY = (double) mapLabel.getHeight() / mapImage.getHeight(null);
-
-        for (Building b : buildings) {
-            if (b.isVisible()) {
-                int x = (int) (b.getLocation().x * scaleX);
-                int y = (int) (b.getLocation().y * scaleY);
-
-                // Different colors for different service types
-                Color markerColor = Color.BLUE;
-                if (b.getServiceType().equals("Cafes")) markerColor = new Color(0, 150, 0); // Green
-                else if (b.getServiceType().equals("Restaurants")) markerColor = new Color(200, 0, 0); // Red
-                else if (b.getServiceType().equals("Parking Lots")) markerColor = new Color(150, 150, 0); // Yellow
-                else if (b.getServiceType().equals("Administrations")) markerColor = new Color(150, 0, 150); // Purple
-                else if (b.getServiceType().equals("Sports Areas")) markerColor = new Color(0, 150, 150); // Cyan
-                else if (b.getServiceType().equals("Auditoriums")) markerColor = new Color(200, 100, 0); // Orange
-
-                g2d.setColor(markerColor);
-                g2d.fillOval(x - 8, y - 8, 16, 16);
-                g2d.setColor(Color.WHITE);
-                g2d.drawString(b.getCode(), x - 5, y + 5);
-            }
-        }
-        g2d.dispose();
-    }
-
-    private void handleMapClick(Point clickPoint) {
-        if (buildings == null || mapImage == null) return;
-
-        double scaleX = (double) mapLabel.getWidth() / mapImage.getWidth(null);
-        double scaleY = (double) mapLabel.getHeight() / mapImage.getHeight(null);
-
-        for (Building b : buildings) {
-            if (!b.isVisible()) continue;
-
-            int x = (int) (b.getLocation().x * scaleX);
-            int y = (int) (b.getLocation().y * scaleY);
-
-            if (clickPoint.distance(x, y) < 15) {
-                selectedBuilding = b;
+            if (!visibleBuildingCodes.contains(b.getCode())) continue;
+            int x = (int)(b.getLocation().x * zoomFactor);
+            int y = (int)(b.getLocation().y * zoomFactor);
+            Rectangle hitBox = new Rectangle(x - 8, y - 8, 16, 16);
+            if (hitBox.contains(click)) {
                 showBuildingDetails(b);
-                buildingFilter.setSelectedItem(b.getCode());
-                mapLabel.repaint();
                 return;
             }
         }
+    }
 
-        // Set user location when clicking on empty space
-        userLocation = new Point(
-                (int)(clickPoint.x / scaleX),
-                (int)(clickPoint.y / scaleY)
-        );
+    private void updateResults() {
+        resultsListModel.clear();
+        visibleBuildingCodes.clear();
+        String codeFilter = (String) buildingFilter.getSelectedItem();
+        String query = searchField.getText().trim().toLowerCase();
+
+        for (Building b : buildings) {
+            boolean matchesFilter = codeFilter.equals("All") || b.getCode().equalsIgnoreCase(codeFilter);
+            boolean matchesCategory = currentCategory.equals("All") || b.getServiceType().equalsIgnoreCase(currentCategory.replace(" ", "_"));
+            boolean matchesSearch = query.isEmpty() ||
+                b.getName().toLowerCase().contains(query) ||
+                b.getCode().toLowerCase().contains(query);
+
+            if (matchesFilter && matchesCategory && matchesSearch) {
+                resultsListModel.addElement(b);
+                visibleBuildingCodes.add(b.getCode());
+            }
+        }
+
+        if (resultsListModel.isEmpty()) {
+            resultsListModel.addElement(new Building("NA", "No results found", "", new Point(0, 0), ""));
+        }
+
         mapLabel.repaint();
     }
 
-    private void showBuildingDetails(Building building) {
-        // Create a panel to hold both image and text
-        JPanel detailsPanel = new JPanel();
-        detailsPanel.setLayout(new BoxLayout(detailsPanel, BoxLayout.Y_AXIS));
-        detailsPanel.setBackground(Color.WHITE);
-        detailsPanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
+    private void showBuildingDetails(Building b) {
+    if (b == null || b.getCode().equals("NA")) return;
+    currentSelectedBuilding = b;
 
-        if (building == null) {
-            JLabel emptyLabel = new JLabel("Select a building to view details");
-            emptyLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
-            detailsPanel.add(emptyLabel);
+    // Resmi JLabel boyutuna göre ölçekle
+    if (b.getImage() != null) {
+        int labelWidth = buildingImageLabel.getWidth();
+        int labelHeight = buildingImageLabel.getHeight();
+
+        if (labelWidth > 0 && labelHeight > 0) {
+            Image scaledImage = b.getImage().getImage().getScaledInstance(
+                labelWidth, labelHeight, Image.SCALE_SMOOTH);
+            buildingImageLabel.setIcon(new ImageIcon(scaledImage));
         } else {
-            if (building.getImage() != null) {
-                ImageIcon icon = building.getImage();
-                Image scaledImage = icon.getImage().getScaledInstance(280, 140, Image.SCALE_SMOOTH);
-                JLabel imageLabel = new JLabel(new ImageIcon(scaledImage));
-                imageLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
-                detailsPanel.add(imageLabel);
-                detailsPanel.add(Box.createVerticalStrut(10));
-            } else {
-                JLabel noImageLabel = new JLabel("No image available");
-                noImageLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
-                detailsPanel.add(noImageLabel);
-                detailsPanel.add(Box.createVerticalStrut(10));
-            }
-
-            String detailsText = String.format(
-                "Building Code: %s\nName: %s\nType: %s\n\nDetails:\n%s",
-                building.getCode(),
-                building.getName(),
-                building.getServiceType(),
-                building.getDetails()
-            );
-
-            JTextArea textArea = new JTextArea(detailsText);
-            textArea.setEditable(false);
-            textArea.setLineWrap(true);
-            textArea.setWrapStyleWord(true);
-            textArea.setFont(new Font("Arial", Font.PLAIN, 14));
-            textArea.setBackground(Color.WHITE);
-            textArea.setForeground(Color.BLACK);
-
-            JScrollPane textScrollPane = new JScrollPane(textArea);
-            textScrollPane.setPreferredSize(new Dimension(280, 160)); // matches side panel width
-            textScrollPane.setBorder(BorderFactory.createEmptyBorder());
-
-            detailsPanel.add(textScrollPane);
+            Image scaledImage = b.getImage().getImage().getScaledInstance(
+                280, 140, Image.SCALE_SMOOTH);
+            buildingImageLabel.setIcon(new ImageIcon(scaledImage));
         }
-
-        JScrollPane detailsScrollPane = (JScrollPane) sidePanel.getComponent(8);
-        detailsScrollPane.setViewportView(detailsPanel);
-        detailsScrollPane.setPreferredSize(new Dimension(280, 260));
-        detailsScrollPane.revalidate();
-        detailsScrollPane.repaint();
+    } else {
+        buildingImageLabel.setIcon(null);
     }
 
+    buildingDetailsText.setText("Code: " + b.getCode() + "\n" +
+        "Name: " + b.getName() + "\n" +
+        "Service: " + b.getServiceType() + "\n\n" +
+        "Details:\n" + b.getDetails());
+}
+
+
     private class Building {
-        private String code;
-        private String name;
-        private String serviceType;
+        private String code, name, serviceType, details;
         private Point location;
-        private String details;
-        private boolean visible;
         private ImageIcon image;
 
         public Building(String code, String name, String serviceType, Point location, String details) {
@@ -564,43 +384,19 @@ public class MapPage extends JPanel {
             this.serviceType = serviceType;
             this.location = location;
             this.details = details;
-            this.visible = true;
-            
-            // Try to load building image
             try {
-                String imagePath = "building_images/" + code + ".jpeg";
-                File imageFile = new File(imagePath);
-                if (imageFile.exists()) {
-                    this.image = new ImageIcon(ImageIO.read(imageFile));
-                } else {
-                    // Try with different extensions if JPEG not found
-                    imagePath = "building_images/" + code + ".jpg";
-                    imageFile = new File(imagePath);
-                    if (imageFile.exists()) {
-                        this.image = new ImageIcon(ImageIO.read(imageFile));
-                    } else {
-                        imagePath = "building_images/" + code + ".png";
-                        imageFile = new File(imagePath);
-                        if (imageFile.exists()) {
-                            this.image = new ImageIcon(ImageIO.read(imageFile));
-                        } else {
-                            this.image = null;
-                        }
-                    }
-                }
+                image = new ImageIcon(ImageIO.read(new File("building_images/" + code + ".jpeg")));
             } catch (Exception e) {
-                System.err.println("Error loading image for building " + code + ": " + e.getMessage());
-                this.image = null;
+                image = null;
             }
         }
 
         public String getCode() { return code; }
         public String getName() { return name; }
         public String getServiceType() { return serviceType; }
-        public Point getLocation() { return location; }
         public String getDetails() { return details; }
-        public boolean isVisible() { return visible; }
-        public void setVisible(boolean visible) { this.visible = visible; }
+        public Point getLocation() { return location; }
         public ImageIcon getImage() { return image; }
+        public String toString() { return name + " [" + code + "]"; }
     }
 }
